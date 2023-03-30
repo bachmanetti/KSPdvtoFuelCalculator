@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    /* common styles for all screens */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f0f0f0;
+    }
+
+    h1 {
+      text-align: center;
+      color: white;
+      background-color: #333333;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .control {
+      flex-basis: 45%;
+    }
+
+    .control label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    .control select,
+    .control input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #cccccc;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      grid-gap: 10px;
+    }
+
+    .grid-item {
+      border: 1px solid black;
+      padding: 10px;
+    }
+
+    .grid-item:first-child {
+      grid-column: span 5; /* make the first item span all columns */
+    }
+
+    .grid-item:nth-child(2),
+    .grid-item:nth-child(3),
+    .grid-item:nth-child(4),
+    .grid-item:nth-child(5),
+    .grid-item:nth-child(6) {
+      background-color: #cccccc; /* make the second row gray */
+    }
+
+    .details {
+      position: fixed; /* make the details fixed on the right side */
+      top: 0;
+      right: -300px; /* hide the details by default */
+      width: 300px;
+      height: 100%;
+      overflow-y: auto; /* add a scrollbar if needed */
+      background-color: white;
+      border-left: 1px solid black;
+      padding: 20px;
+      opacity: 0; /* make the details transparent by default */
+      transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out; /* add a smooth transition effect */
+    }
+
+    .details.active {
+      transform: translateX(-300px); /* show the details when active */
+      opacity: 1; /* make the details opaque when active */
+    }
+
+    .details h2 {
+      text-align: center;
+    }
+
+    .details p {
+      margin-bottom: 10px;
+    }
+
+    .close-button {
+      position: absolute; /* make the close button absolute on the top left corner */
+      top: 10px;
+      left: 10px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%; /* make the button circular */
+      background-color: red; /* make the button red */
+      color: white; /* make the text white */
+      font-size: 16px; /* make the text larger */
+      line-height: 20px; /* center the text vertically */
+      text-align:center; /* center the text horizontally */
+    }
+    
+     @media (max-width :600px) { 
+       /* styles for small screens */ 
+       .control { 
+         flex-basis :100%; 
+         margin-bottom :10px; 
+       } 
+       
+       .grid { 
+         grid-template-columns :repeat(2,1fr); 
+       } 
+       
+       .grid-item:first-child { 
+         grid-column :span2 ; 
+       } 
+       
+       .details { 
+         width :100%; 
+         right :-100%; 
+       } 
+       
+       .details.active { 
+         transform :translateX(-100%); 
+       } 
+     }
+    
+     @media (min-width: 601px) and (max-width: 1200px) {
+    /* styles for medium screens */
+    .grid {
+        grid-template-columns: repeat(4, 1fr); /* reduce the number of columns to 4 */
+    }
+
+    .grid-item:first-child {
+        grid-column: span 4; /* make the first item span 4 columns */
+    }
+    }
+  </style>
+</head>
+<body>
+  <h1>Responsive Rocket Engines</h1>
+  <div class="container">
+    <div class="controls">
+      <div class="control">
+        <label for="planet">Planet</label>
+        <select id="planet">
+          <option value="earth">Earth</option>
+          <option value="moon">Moon</option>
+          <option value="mars">Mars</option>
+        </select>
+      </div>
+      <div class="control">
+        <label for="profile">Profile</label>
+        <select id="profile">
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+        </select>
+      </div>
+      <div class="control">
+        <label for="vehicle-mass">Vehicle Mass (kg)</label>
+        <input id="vehicle-mass" type="number" min="0" value="1000">
+      </div>
+      <div class="control">
+        <label for="target-dv">Target Dv (m/s)</label>
+        <input id="target-dv" type="number" min="0" value="10000">
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="grid-item">Engine / Count</div>
+      <div class="grid-item">1</div>
+      <div class="grid-item">2</div>
+      <div class="grid-item">3</div>
+      <div class="grid-item">4</div>
+
+      <div class="grid-item">Merlin 1D</div>
+      <div class="grid-item">Fuel Mass: 500 kg<br>T/W: 2.5</div>
+      <div class="grid-item">Fuel Mass: 1000 kg<br>T/W: 5.0</div>
+      <div class="grid-item">Fuel Mass: 1500 kg<br>T/W: 7.5</div>
+      <div class="grid-item">Fuel Mass: 2000 kg<br>T/W: 10.0</div>
+
+      <div class="grid-item">Raptor</div>
+      <div class="grid-item">Fuel Mass: 800 kg<br>T/W: 4.0</div>
+      <div class="grid-item">Fuel Mass: 1600 kg<br>T/W: 8.0</div>
+      <div class="grid-item">Fuel Mass: 2400 kg<br>T/W: 12.0</div>
+      <div class="grid-item">Fuel Mass: 3200 kg<br>T/W: 16.0</div>
+
+      <div class="grid-item">RS-25</div>
+      <div class="grid-item">Fuel Mass: 600 kg<br>T/W: 3.0</div>
+      <div class="grid-item">Fuel Mass: 1200 kg<br>T/W: 6.0</div>
+      <div class="grid-item">Fuel Mass: 1800 kg<br>T/W: 9.0</div>
+      <div class="grid-item">Fuel Mass: 2400 kg<br>T/W: 12.0</div>
+
+      <div class="grid-item">RD-180</div>
+      <div class="grid-item">Fuel Mass: 700 kg<br>T/W: 3.5</div>
+      <div class="grid-item">Fuel Mass: 1400 kg<br>T/W: 7.0</div>
+      <div class="grid-item">Fuel Mass: 2100 kg<br>T/W: 10.5</div>
+      <div class="grid-item">Fuel Mass: 2800 kg<br>T/W: 14.0</div>
+
+    </div>
+
+    <!-- details section -->
+    <!-- initially hidden, will show when a grid item is clicked -->
+    <!-- will display the engine with the best profile and the details of the selected item -->
+    <!-- will have a close button to hide the details -->
+    <!-- example content for demonstration -->
+    <!-- you can change the content dynamically with JavaScript -->
+    <!-- you can also style the content with CSS -->
+    <!-- this is just a basic layout -->
+
+    <!-- add the active class to show the details -->
+    <!-- remove the active class to hide the details -->
+    <div class="details active">
+        <div class="close-button">X</div>
+        <h2>Best Engine: Raptor</h2>
+        <p>Manufacturer: SpaceX</p>
+        <p>Type: Full-flow staged combustion</p>
+        <p>Propellant: Liquid oxygen / Liquid methane</p>
+        <p>Thrust: 2,200 kN</p>
+        <p>Specific impulse: 380 s</p>
+        <h2>Selected Item: Merlin 1D / 2</h2>
+        <p>Fuel Mass: 1000 kg</p>
+        <p>T/W: 5.0</p>
+      </div>
+  
+    </div>
+  </body>
+  </html>
