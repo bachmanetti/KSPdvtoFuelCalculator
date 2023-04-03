@@ -6,6 +6,9 @@ import { planets } from './planets';
 import React, { useState } from 'react';
 import { getISP, getThrust } from './engineHelpers';
 
+const highlightTop = 30;
+const calc_gravity = 9.80665;
+
 const GridPage = () => {
   // Define column values
   const [engineCount, setEngineCount] = useState([1,2,3,4,5,6,7,8]);
@@ -14,13 +17,41 @@ const GridPage = () => {
   const [mode, setMode] = useState(0);
 
   // Define selected planet
-  const [selectedPlanet, setSelectedPlanet] = useState(planets[2]);
+  const [selectedPlanet, setSelectedPlanet] = useState(planets[4]);
 
   // Define target Delta-V
   const [targetDeltaV, setTargetDeltaV] = useState(3800);
 
   // Define Payload mass
   const [payloadMass, setPayloadMass] = useState(2);
+
+  // Define minimum TWR
+  const [minTWR, setMinTWR] = useState(0.5);
+
+  //Used to check if the modal window is open and displaying details
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedCell, setSelectedCell] = useState(null);
+
+  // Handle cell click and open model window
+  const handleCellClick = (cell) => {
+    setIsModalOpen(true);
+    setSelectedCell(cell);
+  }
+
+  const Modal = ({ isOpen, onRequestClose, selectedCell }) => {
+    if (!isOpen) return null;
+  
+    return (
+      <div>
+        <button onClick={onRequestClose}>Close</button>
+        <h2>{selectedCell.name}</h2>
+        <p>Burn Time: {selectedCell.burnTime.toFixed(0)}</p>
+        <p>Fuel Mass: {selectedCell.fuelmass.toFixed(2)}</p>
+        <p>Total Vehicle Mass: {selectedCell.massFull.toFixed(2)}</p>
+        <p>TWR: {selectedCell.twr.toFixed(2)}</p>
+      </div>
+    );
+  }
 
   // Handle slider change
   const handleSliderChange = (event) => {
@@ -33,11 +64,11 @@ const GridPage = () => {
   };
 
   const calculateFuelMass = (isp, mass, fuelRatio) => {
-    return (mass * (Math.exp(targetDeltaV/(isp*selectedPlanet.gravity))-1))/(1 + fuelRatio-fuelRatio*Math.exp(targetDeltaV/(isp*selectedPlanet.gravity)));
+    return (mass * (Math.exp(targetDeltaV/(isp*calc_gravity))-1))/(1 + fuelRatio-fuelRatio*Math.exp(targetDeltaV/(isp*calc_gravity)));
   };
 
   const calculateDeltaV = (isp, massFull, massEmpty) => {
-    return isp * selectedPlanet.gravity * Math.log((massFull) / massEmpty);
+    return isp * calc_gravity * Math.log((massFull) / massEmpty);
   };
 
   // Calculate Thrust-to-Weight ratio
@@ -49,58 +80,87 @@ const GridPage = () => {
   function calculateEngineData() {
     const newEngineData = [];
     for (const engine of engines) {
-      if (engine.fuel_type == "RocketFuel") {
+      if (engine.fuel_type === "RocketFuel") {
         engine.data = engineCount.map(numEngines => {
           const data = {};
           const mass = engine.mass * Number(numEngines) + payloadMass;
           data.mass = engine.mass * Number(numEngines) + payloadMass;
           data.numEngines = numEngines;
           data.enginemass = engine.mass * Number(numEngines);
-          data.fuelmass = calculateFuelMass(getISP(engine, mode), mass, engine.fuelTankRatio);
+          data.fuelmass = calculateFuelMass(getISP(engine, mode*selectedPlanet.atmosphere), mass, engine.fuelTankRatio);
           data.tankagemass = data.fuelmass*engine.fuelTankRatio;
-          data.thrust = getThrust(engine, mode) * Number(numEngines);
           data.massFull = data.fuelmass*(1+ engine.fuelTankRatio) + mass;
-          data.twr = calculateTWR(data.thrust, data.massFull);
           data.massEmpty = data.fuelmass*engine.fuelTankRatio + mass;
+          data.thrust = getThrust(engine, mode*selectedPlanet.atmosphere) * Number(numEngines);
+          data.twr = calculateTWR(data.thrust, data.massFull);
+          data.burnTime = data.fuelmass / (data.thrust / (getISP(engine, mode*selectedPlanet.atmosphere)*calc_gravity));
           return data;
         });
         newEngineData.push(engine);
       }
     }
-    console.log(newEngineData);
+    // loop through engines and calculate the minimum and maximum massFull values, only if the twr is greater than the minimum twr
+    let minMassFull = Number.MAX_VALUE;
+    let maxMassFull = Number.MIN_VALUE;
+    for (const engine of newEngineData) {
+      for (const data of engine.data) {
+        if (data.twr >= minTWR) {
+          minMassFull = Math.min(minMassFull, data.massFull);
+          maxMassFull = Math.max(maxMassFull, data.massFull);
+        }
+      }
+    }
+    
+    // loop through engines and assign it a percentage of the massFull value based on the min and max massFull values with 100% being the min and 0% being the max
+    for (const engine of newEngineData) {
+      for (const data of engine.data) {
+        if (data.twr < minTWR) {
+          data.weighted = 0;
+        } else {
+          //assign a value from 0 to 1 based on the massFull value with 1 being the min and 0 being the max
+          data.weighted = 1 - (data.massFull - minMassFull) / (maxMassFull - minMassFull);
+        }
+      }
+    }
+
+    // For all data in engines, rank each one based on the weight value. 1 is the best and 0 is the worst
+    for (const engine of newEngineData) {
+      for (const data of engine.data) {
+        data.rank = 0;
+        for (const engine2 of newEngineData) {
+          for (const data2 of engine2.data) {
+            if (data.weighted < data2.weighted) {
+              data.rank += 1;
+            }
+          }
+        }
+      }
+    }
     return newEngineData;
   }
 
   // Define engine data
   const [engineData, setEngineData] = useState(calculateEngineData());
 
-  // setEngineData(calculateEngineData);
 
-  // // Calculate min and max values
-  // let minValue = Number.MAX_VALUE;
-  // let maxValue = Number.MIN_VALUE;
-  // engineData.forEach((row) => {
-  //   engineCount.forEach((numEngines) => {
-  //     const mass = row.mass * numEngines + payloadMass;
-  //     const deltaV = calculateDeltaV(row.isp[mode], mass);
-  //     minValue = Math.min(minValue, deltaV);
-  //     maxValue = Math.max(maxValue, deltaV);
-  //   });
-  // });
+  const getCellColor = (data) => {
+    let red = 255;
+    let green = 0;
 
-  // Calculate cell color
-  // const getCellColor = (value) => {
-  //   const ratio = (value - minValue) / (maxValue - minValue);
-  //   const red = Math.round(255 * (1 - ratio));
-  //   const green = Math.round(255 * ratio);
-  //   return `rgb(${red}, ${green}, 0)`;
-  // };
+    // assign a color from red to green based on the weighted value
+    // use an exponential function to make the color gradient more pronounced
+    if (data.rank <= highlightTop) {
+      green = Math.round(255 * (1 - Math.pow(data.rank/highlightTop, 2)));
+      red = Math.round(255 * Math.pow(data.rank/highlightTop, 2));
+    } else if (data.weighted > 0) {
+    }
 
-  // Calculate Delta-V
-
+    return `rgb(${red}, ${green}, 0)`;
+  };
 
   return (
     <div>
+      <h3>Payload and Mission information</h3>
       <label htmlFor="mode-select">Mode:</label> 
       <select id="mode-select" value={mode} onChange={(event) => setMode(event.target.value)}>
         <option value="0">Vacuum</option>
@@ -138,19 +198,30 @@ const GridPage = () => {
         onChange={(event) => setPayloadMass(Number(event.target.value))}
       />
       <br />
-      <label htmlFor="column-slider">Number of Engines:</label> 
+      <label htmlFor="column-slider">Maximum Number of Engines:</label> 
       <input
         id="column-slider"
         type="range"
         min="1"
-        max="10"
+        max="24"
         value={engineCount.length}
         onChange={handleSliderChange}
       />
+      <br />
+      <h3>Filter Parameters</h3>
+      <label htmlFor="minTWR-input">Minimum TWR:</label> 
+      <input
+        id="minTWR-input"
+        step={0.1}
+        type="number"
+        value={minTWR}
+        onChange={(event) => setMinTWR(Number(event.target.value))}
+      />
+      <br />
       <table>
         <thead>
           <tr>
-            <th></th>
+            <th>Engine Count</th>
             {engineCount.map((numEngines) => (
               <th key={numEngines}>{numEngines}</th>
             ))}
@@ -160,18 +231,15 @@ const GridPage = () => {
           {engineData.map((engine) => (
             <tr key={engine.name}>
               <td>
-                {engine.name}<br />
-                Mass: {engine.mass}<br />
-                ISP: {getISP(engine, mode).toFixed(2)}<br />
-                Thrust: {getThrust(engine, mode).toFixed(2)}<br />
+                {engine.name}
+                {/* {engine.name}<br />
+                isp: {getISP(engine, mode)}<br />
+                thrust: {getThrust(engine, mode)}<br /> */}
               </td>
               {engine.data.map((cell) => {
                 return (
-                <td key={cell.name + cell.numEngines}>
-                  Fuel Mass: {cell.fuelmass.toFixed(2)}<br />
-                  Total Vehicle Mass: {(cell.massFull).toFixed(2)}<br />
-                  Empty Mass: {(cell.massEmpty).toFixed(2)}<br />
-                  TWR: {cell.twr.toFixed(2)}
+                <td key={cell.name + cell.numEngines} style={{backgroundColor: getCellColor(cell)}} onClick={() => handleCellClick(cell)}>
+                  {cell.rank}
                 </td>
                 );
               })}
@@ -179,6 +247,7 @@ const GridPage = () => {
           ))}
         </tbody>
       </table>
+      <Modal isOpen={isModalOpen} onRequestClose={() => setIsModalOpen(false)} selectedCell={selectedCell} />
     </div>
   );
 };
