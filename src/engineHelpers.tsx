@@ -1,4 +1,14 @@
-export function getISP(engine, atmosphere) {
+interface ISP {
+    [key: number]: number;
+}
+
+interface Engine {
+    thrust: number;
+    isp: ISP;
+}
+
+// use the hermite cubic spline interpolation to get the isp at a given atmosphere
+export function getISP(engine: Engine, atmosphere: number): number {
     const isp = engine.isp;
     const keys = Object.keys(isp).map(Number);
     keys.sort((a, b) => a - b);
@@ -20,7 +30,8 @@ export function getISP(engine, atmosphere) {
     return (2 * t ** 3 - 3 * t ** 2 + 1) * y1 + (-2 * t ** 3 + 3 * t ** 2) * y2;
 }
 
-export function getThrust(engine, atmosphere) {
+// get the thrust at a given atmosphere
+export function getThrust(engine: Engine, atmosphere: number): number {
     const vacuumISP = getISP(engine, 0);
     const atmISP = getISP(engine, atmosphere);
     return engine.thrust * (atmISP / vacuumISP);

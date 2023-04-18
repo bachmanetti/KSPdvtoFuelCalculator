@@ -1,5 +1,13 @@
+  // Create Typescript interface for planets
+  export interface Planet {
+    name: string;
+    orbits: string;
+    gravity: number;
+    atmosphere: number;
+  }
+
   // Define planets
-  export const planets = [
+  export const planets: Planet[] = [
     {
       "name": "Kerbol",
       "orbits": "—",

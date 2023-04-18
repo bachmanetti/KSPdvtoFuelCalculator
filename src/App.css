@@ -41,3 +41,28 @@ h3 {
   margin: 0.25rem 0;
   padding: 0.25rem 0;
 }
+
+/* Setup div class "controlsSection" to fall into 4 columns */
+.ControlsSection {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-gap: 1rem;
+}
+
+/* tableSection div should only be as wide as its content, the modalSection div should fit itself to the right of tableSection*/
+.tableSection {
+  display: inline-block;
+  vertical-align: top;
+  margin-right: 60px;
+}
+
+.modalSection {
+  display: inline-block;
+  width: 50%;
+  vertical-align: top;
+}
+
+/* show pointer on engineCell */
+.engineCell {
+  cursor: pointer;
+}
